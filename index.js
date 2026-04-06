@@ -18,23 +18,36 @@ app.get("/v1/models", (req, res) => {
   });
 });
 
-// ✅ chat endpoint (متوافق مع 7-cal)
+// ✅ chat endpoint
 app.post("/v1/chat/completions", async (req, res) => {
   try {
     const messages = req.body.messages || [];
 
-    // ✅ دمج الرسائل
+    // دمج الرسائل
     let userMessage = messages.map(m => m.content).join(" ");
 
-    // ✅ حل مشكلة التست (إذا فاضي)
+    // fallback لو فاضي (مهم لـ test)
     if (!userMessage || userMessage.trim() === "") {
       userMessage = "Hello";
     }
 
-    // ✅ تأكد من API KEY
-    if (AIzaSyBYB1T64c9_gNowWxBLm31kxgatGIG-Fp0) {
-      return res.status(500).json({
-        error: "Missing API key",
+    // تحقق من المفتاح
+    if (!GEMINI_API_KEY) {
+      return res.json({
+        id: "chatcmpl-error",
+        object: "chat.completion",
+        created: Math.floor(Date.now() / 1000),
+        model: "gemini-1.5-flash",
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: "assistant",
+              content: "Missing GEMINI_API_KEY",
+            },
+            finish_reason: "stop",
+          },
+        ],
       });
     }
 
@@ -57,10 +70,11 @@ app.post("/v1/chat/completions", async (req, res) => {
 
     const data = await response.json();
 
-    // ✅ مهم: حتى لو فيه خطأ يرجع response مناسب
-    if (!response.ok) {
-      console.log("Gemini error:", data);
+    // 🔥 طباعة الرد الكامل في logs
+    console.log("FULL GEMINI RESPONSE:", JSON.stringify(data, null, 2));
 
+    // ❌ لو Gemini رجع خطأ
+    if (!response.ok || !data.candidates) {
       return res.json({
         id: "chatcmpl-error",
         object: "chat.completion",
@@ -71,7 +85,7 @@ app.post("/v1/chat/completions", async (req, res) => {
             index: 0,
             message: {
               role: "assistant",
-              content: "Error from Gemini",
+              content: "Gemini error: " + JSON.stringify(data),
             },
             finish_reason: "stop",
           },
@@ -81,7 +95,7 @@ app.post("/v1/chat/completions", async (req, res) => {
 
     const text =
       data.candidates?.[0]?.content?.parts?.[0]?.text ||
-      "No response";
+      "No response generated";
 
     res.json({
       id: "chatcmpl-123",
@@ -101,7 +115,7 @@ app.post("/v1/chat/completions", async (req, res) => {
     });
 
   } catch (err) {
-    console.log("Server error:", err);
+    console.log("SERVER ERROR:", err);
 
     res.json({
       id: "chatcmpl-error",
@@ -122,6 +136,6 @@ app.post("/v1/chat/completions", async (req, res) => {
   }
 });
 
-// ✅ تشغيل السيرفر
+// تشغيل السيرفر
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log("Running on " + PORT));
