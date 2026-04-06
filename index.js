@@ -5,6 +5,16 @@ const app = express();
 app.use(express.json());
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+app.get("/v1/models", (req, res) => {
+  res.json({
+    data: [
+      {
+        id: "gemini-3.1-flash",
+        object: "model",
+      },
+    ],
+  });
+});
 
 app.post("/v1/chat/completions", async (req, res) => {
   try {
