@@ -5,6 +5,8 @@ const app = express();
 app.use(express.json());
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+
+// models endpoint
 app.get("/v1/models", (req, res) => {
   res.json({
     data: [
@@ -16,6 +18,7 @@ app.get("/v1/models", (req, res) => {
   });
 });
 
+// chat endpoint
 app.post("/v1/chat/completions", async (req, res) => {
   try {
     const userMessage = req.body.messages?.[0]?.content || "";
@@ -41,21 +44,27 @@ app.post("/v1/chat/completions", async (req, res) => {
       data.candidates?.[0]?.content?.parts?.[0]?.text || "No response";
 
     res.json({
-  id: "chatcmpl-123",
-  object: "chat.completion",
-  created: Math.floor(Date.now() / 1000),
-  model: "gemini-3.1-flash",
-  choices: [
-    {
-      index: 0,
-      message: {
-        role: "assistant",
-        content: text,
-      },
-      finish_reason: "stop",
-    },
-  ],
+      id: "chatcmpl-123",
+      object: "chat.completion",
+      created: Math.floor(Date.now() / 1000),
+      model: "gemini-3.1-flash",
+      choices: [
+        {
+          index: 0,
+          message: {
+            role: "assistant",
+            content: text,
+          },
+          finish_reason: "stop",
+        },
+      ],
+    });
+
+  } catch (err) {
+    res.status(500).json({ error: "Proxy error" });
+  }
 });
 
+// server start
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log("Running on " + PORT));
