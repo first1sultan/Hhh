@@ -31,17 +31,21 @@ app.post("/v1/chat/completions", async (req, res) => {
       data.candidates?.[0]?.content?.parts?.[0]?.text || "No response";
 
     res.json({
-      choices: [
-        {
-          message: {
-            content: text,
-          },
-        },
-      ],
-    });
-  } catch (err) {
-    res.status(500).json({ error: "Proxy error" });
-  }
+  id: "chatcmpl-123",
+  object: "chat.completion",
+  created: Math.floor(Date.now() / 1000),
+  model: "gemini-3.1-flash",
+  choices: [
+    {
+      index: 0,
+      message: {
+        role: "assistant",
+        content: text,
+      },
+      finish_reason: "stop",
+    },
+  ],
 });
 
-app.listen(3000, () => console.log("Running"));
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log("Running on " + PORT));
