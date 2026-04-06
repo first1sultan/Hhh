@@ -11,7 +11,7 @@ app.get("/v1/models", (req, res) => {
   res.json({
     data: [
       {
-        id: "gemini-1.5-flash", // ✅ غيرناه
+        id: "gemini-1.5-flash",
         object: "model",
       },
     ],
@@ -21,11 +21,16 @@ app.get("/v1/models", (req, res) => {
 // chat endpoint
 app.post("/v1/chat/completions", async (req, res) => {
   try {
-    const messages = req.body.messages || [];
+    console.log("Incoming:", req.body); // 🔥 debugging
 
-    const userMessage = messages
-      .map(m => m.content)
-      .join(" ");
+    let userMessage = "";
+
+    // ✅ يدعم messages و prompt
+    if (req.body.messages) {
+      userMessage = req.body.messages.map(m => m.content).join(" ");
+    } else if (req.body.prompt) {
+      userMessage = req.body.prompt;
+    }
 
     if (!GEMINI_API_KEY) {
       return res.status(500).json({ error: "Missing API key" });
@@ -50,9 +55,9 @@ app.post("/v1/chat/completions", async (req, res) => {
 
     const data = await response.json();
 
-    // ✅ أهم تعديل: طباعة الخطأ لو فيه
+    console.log("Gemini response:", data); // 🔥 debugging
+
     if (!response.ok) {
-      console.log("Gemini error:", data);
       return res.status(500).json({ error: data });
     }
 
@@ -75,10 +80,15 @@ app.post("/v1/chat/completions", async (req, res) => {
           finish_reason: "stop",
         },
       ],
+      usage: {
+        prompt_tokens: 0,
+        completion_tokens: 0,
+        total_tokens: 0,
+      },
     });
 
   } catch (err) {
-    console.log(err);
+    console.log("Server error:", err);
     res.status(500).json({ error: "Proxy error" });
   }
 });
