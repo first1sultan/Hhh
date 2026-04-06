@@ -11,7 +11,7 @@ app.get("/v1/models", (req, res) => {
   res.json({
     data: [
       {
-        id: "gemini-3.1-flash",
+        id: "gemini-1.5-flash", // ✅ غيرناه
         object: "model",
       },
     ],
@@ -21,20 +21,23 @@ app.get("/v1/models", (req, res) => {
 // chat endpoint
 app.post("/v1/chat/completions", async (req, res) => {
   try {
-    // ✅ يدعم أكثر من رسالة (مهم لـ 7-cal)
-    const userMessage =
-      req.body.messages?.map(m => m.content).join(" ") || "";
+    const messages = req.body.messages || [];
 
-    // ✅ تأكد من وجود المفتاح
+    const userMessage = messages
+      .map(m => m.content)
+      .join(" ");
+
     if (!GEMINI_API_KEY) {
       return res.status(500).json({ error: "Missing API key" });
     }
 
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash:generateContent?key=${GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({
           contents: [
             {
@@ -47,14 +50,21 @@ app.post("/v1/chat/completions", async (req, res) => {
 
     const data = await response.json();
 
+    // ✅ أهم تعديل: طباعة الخطأ لو فيه
+    if (!response.ok) {
+      console.log("Gemini error:", data);
+      return res.status(500).json({ error: data });
+    }
+
     const text =
-      data.candidates?.[0]?.content?.parts?.[0]?.text || "No response";
+      data.candidates?.[0]?.content?.parts?.[0]?.text ||
+      "No response from Gemini";
 
     res.json({
       id: "chatcmpl-123",
       object: "chat.completion",
       created: Math.floor(Date.now() / 1000),
-      model: "gemini-3.1-flash",
+      model: "gemini-1.5-flash",
       choices: [
         {
           index: 0,
@@ -68,6 +78,7 @@ app.post("/v1/chat/completions", async (req, res) => {
     });
 
   } catch (err) {
+    console.log(err);
     res.status(500).json({ error: "Proxy error" });
   }
 });
