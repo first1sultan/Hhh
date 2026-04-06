@@ -21,7 +21,14 @@ app.get("/v1/models", (req, res) => {
 // chat endpoint
 app.post("/v1/chat/completions", async (req, res) => {
   try {
-    const userMessage = req.body.messages?.[0]?.content || "";
+    // ✅ يدعم أكثر من رسالة (مهم لـ 7-cal)
+    const userMessage =
+      req.body.messages?.map(m => m.content).join(" ") || "";
+
+    // ✅ تأكد من وجود المفتاح
+    if (!GEMINI_API_KEY) {
+      return res.status(500).json({ error: "Missing API key" });
+    }
 
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash:generateContent?key=${GEMINI_API_KEY}`,
